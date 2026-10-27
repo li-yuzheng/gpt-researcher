@@ -67,6 +67,15 @@ ANTHROPIC_US_INFERENCE_GEO_MODELS = (
     "claude-sonnet-4-6",
 )
 
+# (patterns, input $/MTok, output $/MTok) - first match wins.
+# DeepSeek 官方定价（缓存未命中价），单位 USD / 百万 token：
+# https://api-docs.deepseek.com/quick_start/pricing
+# 价格调整频繁，改动前请核对官网；缓存命中输入价约为 0.07，此处按未命中保守估算。
+DEEPSEEK_MODEL_PRICING = (
+    (("deepseek-reasoner", "deepseek-r1"), 0.55, 2.19),
+    (("deepseek-chat", "deepseek-v3"), 0.27, 1.10),
+)
+
 
 def estimate_llm_cost(input_content: str, output_content: str) -> float:
     """Estimate the cost of an LLM API call based on input and output content.
@@ -254,12 +263,30 @@ def _extract_usage_tokens(
     return int(input_tokens), int(output_tokens), cache_read_tokens
 
 
-def _get_openai_pricing(model: str | None) -> tuple[float, float] | None:
+def _lookup_pricing(model: str | None, table) -> tuple[float, float] | None:
+    """Match a model name against a pricing table by substring, first match wins."""
     normalized = (model or "").lower()
-    for patterns, input_price_per_mtok, output_price_per_mtok in OPENAI_MODEL_PRICING:
+    for patterns, input_price_per_mtok, output_price_per_mtok in table:
         if any(pattern in normalized for pattern in patterns):
             return input_price_per_mtok, output_price_per_mtok
     return None
+
+
+def _get_openai_pricing(model: str | None) -> tuple[float, float] | None:
+    return _lookup_pricing(model, OPENAI_MODEL_PRICING)
+
+
+def _get_provider_pricing(
+    llm_provider: str | None, model: str | None
+) -> tuple[float, float] | None:
+    """Resolve per-MTok pricing for a provider/model pair.
+
+    Unknown providers fall back to the OpenAI table so behaviour for every
+    provider other than DeepSeek is unchanged.
+    """
+    if (llm_provider or "").lower() == "deepseek":
+        return _lookup_pricing(model, DEEPSEEK_MODEL_PRICING)
+    return _lookup_pricing(model, OPENAI_MODEL_PRICING)
 
 
 def calculate_llm_cost(
@@ -292,7 +319,7 @@ def calculate_llm_cost(
         # portions so the cached share is priced at the discount rate
         # instead of the full input rate.
         non_cached_input_tokens = input_tokens - cache_read_tokens
-        pricing = _get_openai_pricing(model)
+        pricing = _get_provider_pricing(llm_provider, model)
         if pricing is not None:
             input_price_per_mtok, output_price_per_mtok = pricing
             non_cached_cost = non_cached_input_tokens * input_price_per_mtok
@@ -312,6 +339,23 @@ def calculate_llm_cost(
             + cached_cost
             + output_tokens * OUTPUT_COST_PER_TOKEN
         )
+
+    # No API-reported usage: fall back to tiktoken, but price the tokens with
+    # the provider's own rate card when we have one (DeepSeek), otherwise the
+    # generic OpenAI constants below would over-bill by ~8x for deepseek-chat.
+    pricing = _get_provider_pricing(llm_provider, model)
+    if pricing is not None:
+        input_price_per_mtok, output_price_per_mtok = pricing
+        try:
+            encoding = tiktoken.get_encoding(ENCODING_MODEL)
+            input_tokens = len(encoding.encode(input_content or ""))
+            output_tokens = len(encoding.encode(output_content or ""))
+            return (
+                input_tokens * input_price_per_mtok
+                + output_tokens * output_price_per_mtok
+            ) / 1_000_000
+        except Exception:  # pragma: no cover - tokenizer failures are non-fatal
+            logger.debug("tiktoken fallback failed for model %s", model)
 
     return estimate_llm_cost(input_content, output_content)
 

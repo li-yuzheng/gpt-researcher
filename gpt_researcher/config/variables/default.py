@@ -2,12 +2,12 @@ from .base import BaseConfig
 
 DEFAULT_CONFIG: BaseConfig = {
     "RETRIEVER": "tavily",
-    "EMBEDDING": "openai:text-embedding-3-small",
+    "EMBEDDING": "custom:BAAI/bge-m3",
     "SIMILARITY_THRESHOLD": 0.42,
     "CONTEXT_FILTER": "auto",  # auto | jev | keyword | embeddings | none; auto = jev with TYPESAFE_API_KEY, else keyword
-    "FAST_LLM": "openai:gpt-5.4-mini",
-    "SMART_LLM": "openai:gpt-5.4",  # Has support for long responses (2k+ words).
-    "STRATEGIC_LLM": "openai:gpt-5.4",  # Reasoning model used for planning; tune REASONING_EFFORT for speed vs. depth.
+    "FAST_LLM": "deepseek:deepseek-chat",
+    "SMART_LLM": "deepseek:deepseek-chat",  # Has support for long responses (2k+ words).
+    "STRATEGIC_LLM": "deepseek:deepseek-chat",  # Reasoning model used for planning; tune REASONING_EFFORT for speed vs. depth.
     # Output token limits. For reasoning models (the default gpt-5.x family)
     # these map to max_completion_tokens, which also covers reasoning tokens -
     # hence the generous headroom on top of the visible output.
