@@ -42,6 +42,7 @@ _SUPPORTED_PROVIDERS = {
 
 NO_SUPPORT_TEMPERATURE_MODELS = [
     "deepseek/deepseek-reasoner",
+    "deepseek-reasoner",  # 官方接口的模型名不带前缀
     "o1-mini",
     "o1-mini-2024-09-12",
     "o1",
@@ -254,18 +255,14 @@ class GenericLLMProvider:
             _check_pkg("langchain_openai")
             from langchain_openai import ChatOpenAI
 
-            llm = ChatOpenAI(openai_api_base='https://api.deepseek.com',
-                     openai_api_key=os.environ["DEEPSEEK_API_KEY"],
-                     **kwargs
-                )
-        elif provider == "atlascloud":
-            _check_pkg("langchain_openai")
-            from langchain_openai import ChatOpenAI
-
-            llm = ChatOpenAI(openai_api_base='https://api.atlascloud.ai/v1',
-                     openai_api_key=os.environ["ATLASCLOUD_API_KEY"],
-                     **kwargs
-                )
+            # 支持 DEEPSEEK_BASE_URL 覆盖，方便走中转站/代理
+            llm = ChatOpenAI(
+                openai_api_base=os.environ.get(
+                    "DEEPSEEK_BASE_URL", "https://api.deepseek.com"
+                ),
+                openai_api_key=os.environ["DEEPSEEK_API_KEY"],
+                **kwargs
+            )
         elif provider == "litellm":
             _check_pkg("langchain_community")
             from langchain_community.chat_models.litellm import ChatLiteLLM

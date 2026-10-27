@@ -89,12 +89,17 @@ class Memory:
             case "custom":
                 from langchain_openai import OpenAIEmbeddings
 
+                # 独立配置，避免与 OPENAI_* 混用（DeepSeek 没有 embedding 接口）
                 _embeddings = OpenAIEmbeddings(
                     model=model,
-                    openai_api_key=os.getenv("OPENAI_API_KEY", "custom"),
+                    openai_api_key=os.getenv(
+                        "CUSTOM_EMBEDDING_API_KEY",
+                        os.getenv("OPENAI_API_KEY", "custom"),
+                    ),
                     openai_api_base=os.getenv(
-                        "OPENAI_BASE_URL", "http://localhost:1234/v1"
-                    ),  # default for lmstudio
+                        "CUSTOM_EMBEDDING_BASE_URL",
+                        os.getenv("OPENAI_BASE_URL", "http://localhost:1234/v1"),
+                    ),
                     check_embedding_ctx_length=False,
                     **embedding_kwargs,
                 )  # quick fix for lmstudio
