@@ -62,3 +62,11 @@ CURSOR_RULES.md
 
 # Local context filter benchmark inputs (scraped pages)
 /evals/context_filter/runs/
+
+# 本地改造产生的备份与临时文件
+*.bak
+.env.deepseek.template
+fix_env.bat
+
+# 版权音乐不入库（本地提示音，自行放入即可）
+frontend/apologize.*
