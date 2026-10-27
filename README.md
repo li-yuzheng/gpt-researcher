@@ -1,3 +1,21 @@
+> # 本仓库说明
+>
+> 本项目 fork 自 [assafelovic/gpt-researcher](https://github.com/assafelovic/gpt-researcher)（Apache-2.0），
+> 我在其基础上完成了三项改造，逐文件说明见 **[CHANGES.md](./CHANGES.md)**。
+>
+> | 方向 | 内容 |
+> | --- | --- |
+> | 模型本地化 | 对话模型切换为 DeepSeek；嵌入切换为 BAAI/bge-m3（硅基流动）；修正非 OpenAI 模型成本估算约 8 倍的偏差 |
+> | 界面汉化 | 前端 172 处文案中文化，后端枚举值保持英文原样 |
+> | 界面重构 | Stripe 风格主题覆盖层 + 交互动效，未改动原 `styles.css` |
+>
+> 上游原生能力（多智能体模式、报告导出、MCP 支持、评测集）均未修改。
+>
+> 回归验证：以上游版本 `3582a684` 为基线，用 `git worktree` 检出未改动副本做对照，
+> 同一依赖环境下测试结果均为 30 失败 / 544 通过，失败用例集合 `diff` 完全一致。
+
+---
+
 <div align="center" id="top">
 
 <img src="https://github.com/assafelovic/gpt-researcher/assets/13554167/20af8286-b386-44a5-9a83-3be1365139c3" alt="Logo" width="80">
