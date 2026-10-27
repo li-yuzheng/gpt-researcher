@@ -347,7 +347,11 @@ async def write_report(research_request: ResearchRequest, research_id: str = Non
     )
 
     docx_path = await write_md_to_word(report_information[0], research_id)
-    pdf_path = await write_md_to_pdf(report_information[0], research_id)
+    try:
+        pdf_path = await write_md_to_pdf(report_information[0], research_id)
+    except Exception as e:
+        logger.warning(f"PDF 生成失败，已跳过（不影响 Markdown/Word 导出）: {e}")
+        pdf_path = None
     if research_request.report_type != "multi_agents":
         report, researcher = report_information
         response = {
