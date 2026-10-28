@@ -39,7 +39,8 @@
 | **嵌入模型替换** | 扩展 `embeddings.py` 的 `custom` 分支，支持任意 OpenAI 兼容的 Embedding 端点，接入 `BAAI/bge-m3`（硅基流动） | 中文语义检索质量明显优于 `text-embedding-ada-002`，且免翻墙 |
 | **界面汉化** | 前端 172 处用户可见文案中文化，覆盖首页、表单、进度面板、报告区、提示语；后端枚举值与 API 字段保持英文原样 | 界面全中文，但接口契约未破坏，可无缝对接原版 API |
 | **视觉重构** | 新增 `stripe-theme.css` + `stripe-ui.js` 覆盖层：紫蓝粉渐变光晕、24px 圆角卡片、按钮涟漪、悬停上浮、滚动入场 | 原 `styles.css` 的 2369 行一行未改，上游更新不会冲突 |
-| **本地运行加固** | `main.py` 增加滚动日志（10MB × 5 份）；PDF 导出失败降级为 warning 而非中断整个请求 | Windows 下开箱即跑，单个模块失败不会拖垮主流程 |
+| **本地运行加固** | `main.py` 增加滚动日志（10MB × 5 份）；`.env` 强制覆盖外部环境变量；导出失败降级为 warning 而非中断整个请求 | Windows 下开箱即跑，单个模块失败不会拖垮主流程 |
+| **PDF 导出修复** | 原实现依赖 weasyprint/GTK，Windows 上直接报错。改为调用系统 Edge/Chrome 无头打印，新增打印专用样式（中文字体栈、`@page`、表格分页、标题不孤行），weasyprint 作为回退 | Windows 无需装 GTK 即可导出，中文与表格排版与网页一致 |
 
 ## 技术栈
 
@@ -132,6 +133,28 @@ elif provider == "deepseek":
 
 原 `styles.css` 有 2369 行深色主题，直接改会和上游更新产生大面积冲突。改为在 `index.html` 末尾追加一个 `<link>` 引入覆盖层，用 CSS 变量与更高的选择器优先级覆盖颜色、圆角、阴影；交互动效独立放在 `stripe-ui.js`，用 `IntersectionObserver` 做滚动入场、用 `transform` 做按压回弹以保持 60fps。**上游文件零改动，随时可以同步新版。**
 
+**4. 为什么 PDF 用浏览器打印，而不是 weasyprint**
+
+原实现走 `md2pdf` → `weasyprint`，后者依赖 GTK/Pango 原生库，在 Windows 上几乎装不上，导出直接抛异常。但**每台 Windows 都自带 Edge（Chromium 内核）**，它本身就是完整的 HTML+CSS 渲染引擎——与其再装一套，不如直接调用它。
+
+实现上有三个坑：
+
+```python
+# 1) 必须用独立的 user-data-dir，否则会复用用户正在运行的浏览器配置，
+#    表现为命令返回 0 但没有生成任何文件
+f"--user-data-dir={profile_dir}"
+
+# 2) 不同 Chromium 版本支持的参数不同，需要逐组降级尝试
+("--headless=new", "--no-pdf-header-footer"),
+("--headless=new", "--print-to-pdf-no-header"),
+("--headless",     "--no-pdf-header-footer"),
+
+# 3) 失败时浏览器仍可能留下 0 字节文件，必须校验大小而不是判断 exists
+if os.path.isfile(pdf_abs) and os.path.getsize(pdf_abs) > 1024:
+```
+
+另外新增了 `pdf_print.css` 作为打印专用覆盖层：原 `pdf_styles.css` 指定 Libre Baskerville（多数系统没装，且不含中文字形，中文会整体回退成默认字体），这里换成带中文字体的字体栈，并补上 `@page` 页边距、表头底色、`page-break-inside: avoid` 防止表格与代码块被拦腰截断。
+
 ## 项目结构
 
 ```
@@ -162,7 +185,7 @@ docs/screenshots/        README 截图
 
 ## 已知限制
 
-- **PDF 导出**：Windows 下依赖 GTK 运行库，未安装时导出会失败。已做异常降级，不影响报告生成，后续可换 `weasyprint` 或纯 Python 渲染方案。
+- **PDF 导出**：优先调用系统已安装的 Edge / Chrome 无头打印，Windows 与 macOS 开箱可用；两者都没有时回退 `weasyprint`（Linux 需自行安装 GTK/Pango）。都不可用时导出返回空并记录日志，不影响报告生成与其他格式导出。
 - **检索质量**：强依赖 Tavily，免费额度有限；换用其他搜索源需要实现对应的 retriever 接口。
 - **DeepSeek 上下文**：`deepseek-chat` 上下文为 64K，超长报告会触发分段生成，耗时上升。
 

@@ -5,7 +5,7 @@
 
 基线版本：`3582a684`（Merge pull request #2206）
 
-**改动规模**：12 个文件修改 + 4 个新增，合计 +625 / −230 行。
+**改动规模**：相对基线，代码与配置 18 个文件（+3230 / −244 行），文档 6 个，界面截图 2 张。
 
 ---
 
@@ -101,7 +101,28 @@ PDF 导出失败降级：`write_md_to_pdf` 包裹 `try/except`，捕获后仅记
 
 **原因**：Windows 缺少 GTK 运行库时，`weasyprint` 抛出 `OSError: cannot load library 'libgobject-2.0-0'`，原实现会将整个研究请求打断——报告已生成但用户拿不到。
 
-**注意**：这只是降级，PDF 导出在无 GTK 环境下仍不可用。彻底解决需安装 GTK 或改用无系统依赖的导出方案（如 `xhtml2pdf`）。
+**注意**：此处仅做了降级。PDF 的彻底修复见 `backend/utils.py` 一节。
+
+### `backend/utils.py` — PDF 导出改为浏览器打印
+
+原链路：`write_md_to_pdf` → `md2pdf` → `weasyprint` → 需要 GTK/Pango 原生库，Windows 上不可用。
+
+改为**优先调用系统 Edge / Chrome 的无头打印**（`--print-to-pdf`），weasyprint 作为回退：
+
+| 环节 | 处理 |
+|---|---|
+| Markdown → HTML | `mistune.create_markdown(plugins=["table", "strikethrough"])` |
+| 图片路径 | `/outputs/...` 与 Windows 绝对路径统一转成 `file://` URL，否则 `file://` 页面无法加载本地图片 |
+| 浏览器探测 | Windows 查 Program Files / Program Files (x86) / LocalAppData；macOS 查 `/Applications`；Linux 用 `shutil.which` |
+| 参数兼容 | 按 `--no-pdf-header-footer` / `--print-to-pdf-no-header` × `--headless=new` / `--headless` 四组逐次降级 |
+| profile 隔离 | 每次使用独立的 `--user-data-dir`，否则会复用用户正在运行的浏览器配置，导致命令返回 0 但无产出 |
+| 产出校验 | 校验文件大小 > 1KB，而非仅判断文件是否存在（失败时会留下 0 字节文件） |
+
+新增 `backend/styles/pdf_print.css` 作为打印专用覆盖层：
+
+- 原 `pdf_styles.css` 指定 `Libre Baskerville`，多数系统未安装且不含中文字形，中文会整体回退
+- 改为带中文字体的字体栈（`Source Han Sans SC` / `PingFang SC` / `Microsoft YaHei` …）
+- 补齐 `@page` A4 页边距、表头灰底、`page-break-inside: avoid`（防止表格、代码块、图片被跨页截断）、`page-break-after: avoid`（防止标题孤行）
 
 ### 其他
 
@@ -171,7 +192,7 @@ PDF 导出失败降级：`write_md_to_pdf` 包裹 `try/except`，捕获后仅记
 
 | 问题 | 状态 | 说明 |
 |---|---|---|
-| PDF 导出不可用 | 未解决 | Windows 缺 GTK，仅做了降级处理 |
+| PDF 导出 | 已解决 | 改用系统 Edge/Chrome 无头打印，Windows 无需 GTK；weasyprint 保留为回退 |
 | 服务无鉴权 | 未解决 | 已通过监听 127.0.0.1 降低风险，公网部署需自行添加 API key 中间件与限流 |
 | 测试未做 mock 隔离 | 未解决 | 有效密钥下运行测试会真实调用外部 API，耗时从 22s 增至 170s 并产生费用 |
 | `requirements.txt` 未锁版本 | 部分缓解 | 另附 `requirements.lock.txt`，原文件保持上游风格 |

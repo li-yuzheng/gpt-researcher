@@ -1,0 +1,138 @@
+/* 打印专用补充样式，在本目录的 pdf_styles.css 之后加载。
+ *
+ * 原 pdf_styles.css 指定 Libre Baskerville（正文衬线字体），系统普遍未安装，
+ * 且该字体不含中文字形，中文会回退到默认字体、字重与行距全部失控。
+ * 这里统一换成带中文字体的字体栈，并补齐 @page、表格与分页规则。
+ */
+
+@page {
+    size: A4;
+    margin: 18mm 16mm 20mm 16mm;
+}
+
+body {
+    font-family: "Source Han Sans SC", "PingFang SC", "Microsoft YaHei",
+                 "Hiragino Sans GB", "Noto Sans CJK SC", "Segoe UI", sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.75;
+    color: #1f2328;
+    background: #fff;
+    margin: 0;
+    padding: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: inherit;
+    color: #111827;
+    line-height: 1.35;
+    page-break-after: avoid;
+    break-after: avoid;
+}
+
+h1 {
+    font-size: 1.7em;
+    margin: 0 0 0.6em 0;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #2563eb;
+}
+
+h2 {
+    font-size: 1.32em;
+    margin: 1.4em 0 0.5em 0;
+    padding-left: 8px;
+    border-left: 4px solid #2563eb;
+}
+
+h3 {
+    font-size: 1.14em;
+    margin: 1.2em 0 0.4em 0;
+}
+
+h4, h5, h6 {
+    font-size: 1.02em;
+    margin: 1em 0 0.35em 0;
+}
+
+p {
+    margin: 0.55em 0;
+    text-align: justify;
+    word-break: break-word;
+}
+
+a {
+    color: #2563eb;
+    text-decoration: none;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.9em 0;
+    font-size: 0.9em;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+th, td {
+    border: 1px solid #d0d7de;
+    padding: 6px 8px;
+    text-align: left;
+    vertical-align: top;
+}
+
+th {
+    background: #f6f8fa;
+    font-weight: 600;
+}
+
+blockquote {
+    margin: 0.8em 0;
+    padding: 0.4em 0.9em;
+    border-left: 4px solid #d0d7de;
+    background: #f6f8fa;
+    color: #57606a;
+}
+
+code {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.9em;
+    background: #f6f8fa;
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+
+pre {
+    background: #f6f8fa;
+    padding: 10px 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+pre code {
+    background: none;
+    padding: 0;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+ul, ol {
+    padding-left: 1.55em;
+    margin: 0.5em 0;
+}
+
+li {
+    margin: 0.22em 0;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid #d0d7de;
+    margin: 1.2em 0;
+}
