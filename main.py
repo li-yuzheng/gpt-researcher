@@ -38,7 +38,11 @@ logging.getLogger('fontTools.ttLib').setLevel(logging.WARNING)
 # Create logger instance
 logger = logging.getLogger(__name__)
 
-load_dotenv()
+# override=True：让项目根目录的 .env 优先于外部 shell 环境变量。
+# 否则当你机器上残留了一个旧的 DEEPSEEK_API_KEY（比如上一版配置遗留）时，
+# .env 里正确的新 key 会被静默遮蔽，表现为满屏 401「api key is invalid」，
+# 极难排查——因为日志里只会显示打码后的 key 尾号，看不出用的是哪一份。
+load_dotenv(override=True)
 
 from backend.server.app import app
 
