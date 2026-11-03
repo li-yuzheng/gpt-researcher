@@ -111,7 +111,7 @@ pyasn1==0.6.4
 pyasn1_modules==0.4.2
 pycparser==3.12
 pydantic==2.14.1
-pydantic-settings==2.16.1
+pydantic-settings==2.16.2
 pydantic_core==2.50.1
 pydyf==0.13.0
 Pygments==2.21.0
